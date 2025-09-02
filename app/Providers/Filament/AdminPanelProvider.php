@@ -50,6 +50,7 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Widgets\InventarioOverview::class,
                 \App\Filament\Widgets\MovimientosChart::class,
                 \App\Filament\Widgets\UltimosIngresos::class,
+                \App\Filament\Widgets\UltimasEntregas::class,
             ])
             ->middleware([
                 \Hasnayeen\Themes\Http\Middleware\SetTheme::class,

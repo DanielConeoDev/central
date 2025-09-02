@@ -4,46 +4,65 @@ namespace App\Filament\Widgets;
 
 use App\Models\Ingreso;
 use App\Models\Descargo;
+use App\Models\EntregaItem;
+use App\Models\Conversion;
 use Filament\Widgets\ChartWidget;
-use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Carbon\Carbon;
 
 class MovimientosChart extends ChartWidget
 {
-    use InteractsWithPageFilters;
-
     protected static ?string $heading = 'Movimientos de Inventario';
     protected static ?int $sort = 2;
 
     protected function getData(): array
     {
-        $start = $this->filters['startDate'] ?? Carbon::now()->startOfYear();
-        $end   = $this->filters['endDate'] ?? Carbon::now();
+        $start = Carbon::now()->startOfWeek();
+        $end   = Carbon::now()->endOfWeek();
 
-        $ingresos = Ingreso::selectRaw('MONTH(created_at) as mes, SUM(cantidad) as total')
-            ->whereBetween('created_at', [$start, $end])
-            ->groupBy('mes')
-            ->pluck('total', 'mes');
+        // Etiquetas de la semana en español
+        $labels = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 
-        $descargos = Descargo::selectRaw('MONTH(created_at) as mes, SUM(cantidad) as total')
-            ->whereBetween('created_at', [$start, $end])
-            ->groupBy('mes')
-            ->pluck('total', 'mes');
+        // Función para contar registros por día
+        $contarRegistros = function($modelo) use ($start, $end) {
+            return $modelo::whereBetween('created_at', [$start, $end])
+                ->get()
+                ->groupBy(fn($item) => Carbon::parse($item->created_at)->format('N')) // 1=lunes ... 7=domingo
+                ->map(fn($grupo) => count($grupo))
+                ->toArray();
+        };
 
-        $labels = range(1, 12);
+        $ingresos     = $contarRegistros(Ingreso::class);
+        $descargos    = $contarRegistros(Descargo::class);
+        $entregas     = $contarRegistros(EntregaItem::class);
+        $conversiones = $contarRegistros(Conversion::class);
+
+        // Mapear datos según las etiquetas
+        $mapDatos = fn($datos) => array_map(fn($index) => (int)($datos[$index+1] ?? 0), range(0,6));
 
         return [
             'datasets' => [
                 [
                     'label' => 'Ingresos',
-                    'data' => array_map(fn($m) => $ingresos[$m] ?? 0, $labels),
+                    'data' => $mapDatos($ingresos),
+                    'backgroundColor' => '#34D399',
                 ],
                 [
                     'label' => 'Descargos',
-                    'data' => array_map(fn($m) => $descargos[$m] ?? 0, $labels),
+                    'data' => $mapDatos($descargos),
+                    'backgroundColor' => '#F87171',
+                ],
+                [
+                    'label' => 'Entregas',
+                    'data' => $mapDatos($entregas),
+                    'backgroundColor' => '#60A5FA',
+                ],
+                [
+                    'label' => 'Conversiones',
+                    'data' => $mapDatos($conversiones),
+                    'backgroundColor' => '#FBBF24',
                 ],
             ],
-            'labels' => array_map(fn($m) => Carbon::create()->month($m)->shortMonthName, $labels),
+            'labels' => $labels,
         ];
     }
 

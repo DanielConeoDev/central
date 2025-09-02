@@ -57,7 +57,7 @@ class IngresoResource extends Resource
                 Forms\Components\Select::make('producto_codigo')
                     ->label('Producto')
                     ->options(
-                        Producto::where('estado', 'activo')
+                        Producto::where('estado', true)
                             ->orderBy('nombre')
                             ->pluck('nombre', 'codigo')
                     )
