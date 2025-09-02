@@ -19,26 +19,23 @@ class ConversionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-arrow-path';
     protected static ?string $navigationGroup = 'Gestión de Productos';
-    protected static ?int $navigationSort = 0;
+    protected static ?int $navigationSort = 4;
 
     public static function getNavigationBadge(): ?string
     {
-        // Contar registros del día actual
-        $count = Conversion::whereDate('created_at', Date::today())->count();
-
-        // Retornar "0" si no hay registros
-        return (string) $count;
+        return (string) Conversion::whereDate('created_at', now())->count();
     }
 
     public static function getNavigationBadgeTooltip(): ?string
     {
-        return 'Hoy: ' . Date::today()->format('d/m/Y');
+        return 'Hoy: ' . now()->format('d/m/Y');
     }
 
     public static function getNavigationBadgeColor(): ?string
     {
-        return 'warning'; // success | danger | warning | primary | secondary
+        return 'warning';
     }
+
 
     public static function form(Form $form): Form
     {

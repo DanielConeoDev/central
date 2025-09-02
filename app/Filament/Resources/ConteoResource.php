@@ -3,58 +3,47 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ConteoResource\Pages;
-use App\Filament\Resources\ConteoResource\RelationManagers;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Tables\Columns\TextColumn;
-use App\Models\Producto;
-use App\Models\Conteo;
 use Illuminate\Support\Facades\Date;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\IconColumn;
-
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Grouping\Group;
+use App\Models\Conteo;
 
 class ConteoResource extends Resource
 {
     protected static ?string $model = Conteo::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-hashtag';
-
-    protected static ?int $navigationSort = 1;
-
-
     protected static ?string $navigationGroup = 'Gestión de Productos';
+    protected static ?int $navigationSort = 3;
 
     public static function getNavigationBadge(): ?string
     {
-        // Contar registros del día actual
-        $count = Conteo::whereDate('created_at', Date::today())->count();
-
-        // Retornar "0" si no hay registros
-        return (string) $count;
+        return (string) Conteo::whereDate('created_at', now()->toDateString())
+            ->where('inventario', false)
+            ->count();
     }
 
     public static function getNavigationBadgeTooltip(): ?string
     {
-        return 'Hoy: ' . Date::today()->format('d/m/Y');
+        return 'Hoy: ' . now()->format('d/m/Y');
     }
 
     public static function getNavigationBadgeColor(): ?string
     {
-        return 'warning'; // success | danger | warning | primary | secondary
+        return 'warning';
     }
+
 
     public static function form(Form $form): Form
     {
@@ -67,12 +56,30 @@ class ConteoResource extends Resource
                             ->schema([
                                 Forms\Components\Select::make('producto_codigo')
                                     ->label('Producto')
-                                    ->options(
-                                        fn() =>
-                                        \App\Models\Producto::where('estado', 'activo')
+                                    ->options(function () {
+                                        return \App\Models\Producto::where('estado', true)
+                                            ->with(['conteos' => function ($q) {
+                                                $q->where('activo', true);
+                                            }])
                                             ->orderBy('nombre')
-                                            ->pluck('nombre', 'codigo')
-                                    )
+                                            ->get()
+                                            ->mapWithKeys(function ($producto) {
+                                                $conteoActivo = $producto->conteos->first();
+
+                                                if ($conteoActivo) {
+                                                    $icono = '✅';
+                                                    $cantidad = " | CANT:{$conteoActivo->cantidad}";
+                                                } else {
+                                                    $icono = '❌';
+                                                    $cantidad = '';
+                                                }
+
+                                                return [
+                                                    $producto->codigo => "{$producto->codigo} - {$producto->nombre} | {$icono}{$cantidad}",
+                                                ];
+                                            })
+                                            ->toArray();
+                                    })
                                     ->searchable()
                                     ->reactive()
                                     ->required()
@@ -113,7 +120,7 @@ class ConteoResource extends Resource
                             }),
                     ])
                     ->collapsible()
-                    ->visible(fn($record) => $record !== null)
+                    ->visible(fn($record) => $record !== null),
             ]);
     }
 
@@ -145,6 +152,23 @@ class ConteoResource extends Resource
                     ])
                     ->sortable(),
 
+                // NUEVO: Columna Inventario
+                IconColumn::make('inventario')
+                    ->label('Inventario')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-archive-box')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->colors([
+                        'primary' => fn($state) => $state === true,
+                    ])
+                    ->sortable(),
+
+                // NUEVO: Usuario que hizo el conteo
+                TextColumn::make('usuario.name')
+                    ->label('Usuario')
+                    ->sortable()
+                    ->searchable(),
+
                 TextColumn::make('created_at')
                     ->label('Fecha')
                     ->dateTime()
@@ -157,12 +181,10 @@ class ConteoResource extends Resource
                     ->collapsible(),
             ])
             ->filters([
-                // Filtro por producto
                 SelectFilter::make('producto')
                     ->label('Producto')
                     ->relationship('producto', 'nombre'),
 
-                // Filtro por rango de fechas
                 Filter::make('created_at')
                     ->label('Rango de fechas')
                     ->form([
@@ -174,6 +196,14 @@ class ConteoResource extends Resource
                             ->when($data['desde'], fn($q, $desde) => $q->whereDate('created_at', '>=', $desde))
                             ->when($data['hasta'], fn($q, $hasta) => $q->whereDate('created_at', '<=', $hasta));
                     }),
+
+                // NUEVO: filtro para inventario
+                SelectFilter::make('inventario')
+                    ->label('Inventario')
+                    ->options([
+                        1 => 'Sí',
+                        0 => 'No',
+                    ]),
             ])
             ->actions([
                 EditAction::make(),
@@ -187,9 +217,7 @@ class ConteoResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

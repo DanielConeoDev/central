@@ -21,26 +21,23 @@ class DescargoResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-trash';
     protected static ?string $navigationGroup = 'Gestión de Productos';
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 5;
 
     public static function getNavigationBadge(): ?string
     {
-        // Contar registros del día actual
-        $count = Descargo::whereDate('created_at', Date::today())->count();
-
-        // Retornar "0" si no hay registros
-        return (string) $count;
+        return (string) Descargo::whereDate('created_at', now())->count();
     }
 
     public static function getNavigationBadgeTooltip(): ?string
     {
-        return 'Hoy: ' . Date::today()->format('d/m/Y');
+        return 'Hoy: ' . now()->format('d/m/Y');
     }
 
     public static function getNavigationBadgeColor(): ?string
     {
-        return 'warning'; // success | danger | warning | primary | secondary
+        return 'warning';
     }
+
 
     public static function form(Form $form): Form
     {
@@ -50,7 +47,7 @@ class DescargoResource extends Resource
                     ->label('Usuario')
                     ->options(User::pluck('name', 'id'))
                     ->searchable()
-                    ->default(fn () => auth()->id())
+                    ->default(fn() => auth()->id())
                     ->required(),
 
                 Forms\Components\Select::make('producto_codigo')
@@ -70,7 +67,7 @@ class DescargoResource extends Resource
                         $conteo = Conteo::where('producto_codigo', $productoCodigo)
                             ->where('activo', true)
                             ->first();
-                        return $conteo ? 'max:'.$conteo->cantidad : '';
+                        return $conteo ? 'max:' . $conteo->cantidad : '';
                     }),
 
                 Forms\Components\Textarea::make('motivo')

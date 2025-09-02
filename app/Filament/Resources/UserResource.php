@@ -17,25 +17,20 @@ class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    // Ícono del recurso
     protected static ?string $navigationIcon = 'heroicon-o-users';
+    protected static ?string $navigationGroup = 'Administración de Usuarios';
+    protected static ?int $navigationSort = 10;
 
-    // Nombre del grupo en el menú
-    protected static ?string $navigationGroup = 'Administracion Usuarios';
-
-    protected static ?int $navigationSort = 2;
-
-    // Mostrar cantidad de usuarios como "badge"
     public static function getNavigationBadge(): ?string
     {
-        return (string) static::getModel()::count();
+        return (string) User::count();
     }
 
-    // Opcional: puedes cambiar el color del badge
     public static function getNavigationBadgeColor(): ?string
     {
-        return 'primary'; // success | danger | warning | primary | secondary
+        return 'primary';
     }
+
 
     public static function form(Form $form): Form
     {

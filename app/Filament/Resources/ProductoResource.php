@@ -23,20 +23,20 @@ class ProductoResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-cube';
     protected static ?string $navigationGroup = 'Gestión de Productos';
-
-    protected static ?int $navigationSort = 0;
+    protected static ?int $navigationSort = 2;
 
     public static function getNavigationBadge(): ?string
     {
-        return (string) static::getModel()::count();
+        return (string) Producto::count();
     }
 
     public static function getNavigationBadgeColor(): ?string
     {
-        return 'success'; // success | danger | warning | primary | secondary
+        return 'warning';
     }
 
     protected static ?string $navigationBadgeTooltip = 'Productos Creados';
+
 
     public static function form(Form $form): Form
     {

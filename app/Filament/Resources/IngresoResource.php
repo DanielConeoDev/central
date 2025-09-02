@@ -17,33 +17,25 @@ class IngresoResource extends Resource
 {
     protected static ?string $model = Ingreso::class;
 
-    // Icono para el menú
     protected static ?string $navigationIcon = 'heroicon-o-inbox-stack';
-
-    // Grupo de navegación
     protected static ?string $navigationGroup = 'Logística';
-
-    // Orden en el menú
     protected static ?int $navigationSort = 2;
 
     public static function getNavigationBadge(): ?string
     {
-        // Contar registros del día actual
-        $count = Ingreso::whereDate('created_at', Date::today())->count();
-
-        // Retornar "0" si no hay registros
-        return (string) $count;
+        return (string) Ingreso::whereDate('created_at', now())->count();
     }
 
     public static function getNavigationBadgeTooltip(): ?string
     {
-        return 'Hoy: ' . Date::today()->format('d/m/Y');
+        return 'Hoy: ' . now()->format('d/m/Y');
     }
 
     public static function getNavigationBadgeColor(): ?string
     {
-        return 'success'; // success | danger | warning | primary | secondary
+        return 'success';
     }
+
 
     public static function form(Form $form): Form
     {
@@ -54,7 +46,7 @@ class IngresoResource extends Resource
                     ->options(User::pluck('name', 'id'))
                     ->searchable()
                     ->preload()
-                    ->default(fn () => auth()->id())
+                    ->default(fn() => auth()->id())
                     ->required(),
 
                 Forms\Components\TextInput::make('factura')

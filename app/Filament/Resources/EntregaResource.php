@@ -25,27 +25,23 @@ class EntregaResource extends Resource
 {
     protected static ?string $model = Entrega::class;
 
-    // ----------------------------
-    // 🔹 Navegación en Filament
-    // ----------------------------
     protected static ?string $navigationIcon = 'heroicon-o-truck';
     protected static ?string $navigationGroup = 'Logística';
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 1;
 
     public static function getNavigationBadge(): ?string
     {
-        $count = Entrega::whereDate('created_at', Carbon::today())->count();
-        return (string) $count;
+        return (string) Entrega::whereDate('created_at', now())->count();
     }
 
     public static function getNavigationBadgeTooltip(): ?string
     {
-        return 'Hoy: ' . Carbon::today()->format('d/m/Y');
+        return 'Hoy: ' . now()->format('d/m/Y');
     }
 
     public static function getNavigationBadgeColor(): ?string
     {
-        return 'success'; // success | danger | warning | primary | secondary
+        return 'success';
     }
 
     // ----------------------------
@@ -179,13 +175,30 @@ class EntregaResource extends Resource
                                 Grid::make(2)->schema([
                                     Select::make('producto_codigo')
                                         ->label('Producto')
-                                        ->options(fn() => Producto::where('estado', true)
-                                            ->orderBy('nombre')
-                                            ->pluck('nombre', 'codigo')
-                                            ->toArray())
+                                        ->options(function () {
+                                            return \App\Models\Producto::where('estado', true)
+                                                ->whereHas('conteos', function ($q) {
+                                                    $q->where('activo', true);
+                                                })
+                                                ->with(['conteos' => function ($q) {
+                                                    $q->where('activo', true);
+                                                }])
+                                                ->orderBy('nombre')
+                                                ->get()
+                                                ->mapWithKeys(function ($producto) {
+                                                    $conteoActivo = $producto->conteos->first();
+                                                    $cantidad = $conteoActivo ? $conteoActivo->cantidad : 0;
+
+                                                    return [
+                                                        $producto->codigo => "{$producto->nombre} | Cant: {$cantidad}"
+                                                    ];
+                                                })
+                                                ->toArray();
+                                        })
                                         ->searchable()
                                         ->preload()
                                         ->required(),
+
 
                                     TextInput::make('cantidad')
                                         ->label('Cantidad entregada')

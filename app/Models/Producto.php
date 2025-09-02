@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Conteo;
 
 class Producto extends Model
 {
@@ -23,23 +22,12 @@ class Producto extends Model
     ];
 
     protected $casts = [
-    'estado' => 'boolean',
-    'convertible' => 'boolean',
-];
+        'estado' => 'boolean',
+        'convertible' => 'boolean',
+    ];
 
-
-    protected static function booted()
+    public function conteos()
     {
-        // Al crear un producto, generar automáticamente un conteo inicial en 0
-        static::created(function ($producto) {
-            Conteo::create([
-                'producto_codigo' => $producto->codigo,
-                'cantidad' => 0,
-                'diferencial' => 0,
-                'activo' => true,
-            ]);
-        });
+        return $this->hasMany(Conteo::class, 'producto_codigo', 'codigo');
     }
-
-
 }
