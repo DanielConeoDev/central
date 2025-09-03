@@ -9,7 +9,6 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Split;
 use Filament\Forms\Components\Grid;
@@ -37,59 +36,64 @@ class ProductoResource extends Resource
 
     protected static ?string $navigationBadgeTooltip = 'Productos Creados';
 
-
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Section::make('')
+                Section::make('Información del producto')
                     ->schema([
-                        Split::make([
-                            Section::make('Información del producto')
-                                ->schema([
-                                    TextInput::make('codigo')
-                                        ->label('Código')
-                                        ->placeholder('Ej: PROD-001')
-                                        ->required()
-                                        ->maxLength(50)
-                                        ->unique(ignoreRecord: true),
+                        Grid::make(2) // Dos columnas dentro del grid
+                            ->schema([
+                                TextInput::make('codigo')
+                                    ->label('Código')
+                                    ->placeholder('Ej: PROD-001')
+                                    ->required()
+                                    ->maxLength(50)
+                                    ->unique(ignoreRecord: true),
 
-                                    TextInput::make('nombre')
-                                        ->label('Nombre del producto')
-                                        ->placeholder('Ej: Nombre Producto')
-                                        ->required()
-                                        ->maxLength(255),
+                                TextInput::make('nombre')
+                                    ->label('Nombre del producto')
+                                    ->placeholder('Ej: Nombre Producto')
+                                    ->required()
+                                    ->maxLength(255),
 
-                                    Textarea::make('descripcion')
-                                        ->label('Descripción detallada')
-                                        ->placeholder('Opcional: características, detalles, material, etc.')
-                                        ->maxLength(1000),
-                                ])
-                                ->grow(),
+                                Textarea::make('descripcion')
+                                    ->label('Descripción')
+                                    ->placeholder('Opcional: características, detalles, material, etc.')
+                                    ->maxLength(1000),
 
-                            Section::make('Configuración')
-                                ->schema([
-                                    Toggle::make('estado')
-                                        ->label('Activo')
-                                        ->onIcon('heroicon-o-check-circle')
-                                        ->offIcon('heroicon-o-x-circle')
-                                        ->default(true),
+                                TextInput::make('categoria')
+                                    ->label('Categoría')
+                                    ->placeholder('Ej: Bebidas, Electrónica')
+                                    ->maxLength(100),
 
-                                    Toggle::make('convertible')
-                                        ->label('¿Convertible?')
-                                        ->onIcon('heroicon-o-check-circle')
-                                        ->offIcon('heroicon-o-x-circle')
-                                        ->default(false),
-                                ])
-                                ->grow(false),
-                        ])->from('md'),
+                                TextInput::make('cantidad_min')
+                                    ->label('Cantidad mínima')
+                                    ->numeric()
+                                    ->placeholder('Ej: 10'),
+
+                                TextInput::make('cantidad_max')
+                                    ->label('Cantidad máxima')
+                                    ->numeric()
+                                    ->placeholder('Ej: 100'),
+
+                                Toggle::make('estado')
+                                    ->label('Activo')
+                                    ->onIcon('heroicon-o-check-circle')
+                                    ->offIcon('heroicon-o-x-circle')
+                                    ->default(true),
+
+                                Toggle::make('convertible')
+                                    ->label('¿Convertible?')
+                                    ->onIcon('heroicon-o-check-circle')
+                                    ->offIcon('heroicon-o-x-circle')
+                                    ->default(false),
+                            ]),
                     ])
-                    ->columns(1) // el Section principal cubre todo el ancho
-                    ->columnSpanFull(), // asegura que en desktop ocupe la pantalla completa
+                    ->columns(1)
+                    ->columnSpanFull(),
             ]);
     }
-
-
 
     public static function table(Table $table): Table
     {
@@ -105,7 +109,19 @@ class ProductoResource extends Resource
                     ->sortable()
                     ->searchable(),
 
-                // Estado booleano con íconos
+                Tables\Columns\TextColumn::make('categoria')
+                    ->label('Categoría')
+                    ->sortable()
+                    ->searchable(),
+
+                Tables\Columns\TextColumn::make('cantidad_min')
+                    ->label('Cant. Min.')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('cantidad_max')
+                    ->label('Cant. Max.')
+                    ->sortable(),
+
                 Tables\Columns\IconColumn::make('estado')
                     ->label('Estado')
                     ->boolean()
@@ -117,7 +133,6 @@ class ProductoResource extends Resource
                     ])
                     ->sortable(),
 
-                // Convertible booleano con íconos
                 Tables\Columns\IconColumn::make('convertible')
                     ->label('Convertible')
                     ->boolean()
@@ -154,8 +169,6 @@ class ProductoResource extends Resource
                 ]),
             ]);
     }
-
-
 
     public static function getRelations(): array
     {

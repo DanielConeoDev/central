@@ -11,6 +11,7 @@ use App\Models\Conteo;
 use App\Models\Producto;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\BadgeColumn;
 
 class Inventario extends Page implements Tables\Contracts\HasTable
 {
@@ -27,7 +28,7 @@ class Inventario extends Page implements Tables\Contracts\HasTable
     // 🔹 Slug que usa Shield → permiso: "page_Inventario"
     protected static ?string $slug = 'Inventario';
 
-     public static function canAccess(): bool
+    public static function canAccess(): bool
     {
         return auth()->user()?->can('page_Inventario');
     }
@@ -54,6 +55,40 @@ class Inventario extends Page implements Tables\Contracts\HasTable
 
             TextColumn::make('cantidad')
                 ->label('Cantidad')
+                ->sortable(),
+
+            BadgeColumn::make('nivel_stock')
+                ->label('Nivel de Stock')
+                ->getStateUsing(function (Conteo $record) {
+                    $producto = $record->producto;
+                    if (!$producto) return 'N/A';
+
+                    $cantidad = (int) $record->cantidad;
+                    $min = (int) ($producto->cantidad_min ?? 0);
+                    $max = (int) ($producto->cantidad_max ?? PHP_INT_MAX);
+
+                    if ($cantidad <= 0) {
+                        return 'AGOTADO';
+                    } elseif ($cantidad <= $min) {
+                        return 'BAJO';
+                    } elseif ($cantidad >= $max) {
+                        return 'ALTO';
+                    } else {
+                        return 'NORMAL';
+                    }
+                })
+                ->icon(fn($state) => match ($state) {
+                    'AGOTADO' => 'heroicon-o-x-circle',
+                    'BAJO'    => 'heroicon-o-exclamation-circle',
+                    'ALTO'    => 'heroicon-o-check-circle',
+                    'NORMAL'  => 'heroicon-o-minus-circle',
+                    default   => null,
+                })
+                ->colors([
+                    'danger' => fn($state) => in_array($state, ['AGOTADO', 'BAJO']),
+                    'success' => fn($state) => $state === 'ALTO',
+                    'warning' => fn($state) => $state === 'NORMAL',
+                ])
                 ->sortable(),
 
             TextColumn::make('diferencial')

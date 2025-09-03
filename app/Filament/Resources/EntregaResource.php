@@ -18,6 +18,8 @@ use Filament\Forms\Components\Split;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Repeater;
+use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Actions\ViewAction;
 
 use Carbon\Carbon;
 
@@ -222,23 +224,26 @@ class EntregaResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->sortable()->label('ID'),
+                Tables\Columns\TextColumn::make('id')->sortable()->label('ID')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('factura')->label('Factura'),
                 Tables\Columns\TextColumn::make('usuario.name')->label('Usuario')->sortable()->searchable(),
 
-                Tables\Columns\BadgeColumn::make('tipo_entrega')
+                // Tipo de entrega
+                BadgeColumn::make('tipo_entrega')
                     ->label('Tipo de entrega')
                     ->getStateUsing(fn($record) => ucfirst($record->tipo_entrega))
                     ->colors([
                         'warning' => fn($record) => $record->tipo_entrega === 'parcial',
-                        'success' => fn($record) => $record->tipo_entrega === 'total',
+                        'gray' => fn($record) => $record->tipo_entrega === 'total',
                     ])
                     ->icons([
-                        'heroicon-s-clock' => fn($record) => $record->tipo_entrega === 'parcial',
-                        'heroicon-s-check' => fn($record) => $record->tipo_entrega === 'total',
+                        'heroicon-s-truck' => fn($record) => $record->tipo_entrega === 'parcial',  // antes clock
+                        'heroicon-s-check-circle' => fn($record) => $record->tipo_entrega === 'total', // antes check
                     ]),
 
-                Tables\Columns\BadgeColumn::make('estado_entrega')
+                // Estado de entrega
+                BadgeColumn::make('estado_entrega')
                     ->label('Estado')
                     ->getStateUsing(fn($record) => ucfirst($record->estado_entrega))
                     ->colors([
@@ -246,8 +251,8 @@ class EntregaResource extends Resource
                         'success' => fn($record) => $record->estado_entrega === 'finalizada',
                     ])
                     ->icons([
-                        'heroicon-s-clock' => fn($record) => $record->estado_entrega === 'iniciada',
-                        'heroicon-s-check' => fn($record) => $record->estado_entrega === 'finalizada',
+                        'heroicon-s-clock' => fn($record) => $record->estado_entrega === 'iniciada', // mantiene clock
+                        'heroicon-s-check-circle' => fn($record) => $record->estado_entrega === 'finalizada', // más visual
                     ]),
 
                 Tables\Columns\TextColumn::make('created_at')
@@ -274,6 +279,9 @@ class EntregaResource extends Resource
                     ->options(fn() => User::pluck('name', 'id')),
             ])
             ->actions([
+                ViewAction::make('ver')
+                    ->label('Orden')
+                    ->icon('heroicon-s-document-text'),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([

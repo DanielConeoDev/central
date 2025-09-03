@@ -19,11 +19,16 @@ class Producto extends Model
         'descripcion',
         'estado',
         'convertible',
+        'cantidad_min',
+        'cantidad_max',
+        'categoria',
     ];
 
     protected $casts = [
         'estado' => 'boolean',
         'convertible' => 'boolean',
+        'cantidad_min' => 'integer',
+        'cantidad_max' => 'integer',
     ];
 
     public function conteos()
