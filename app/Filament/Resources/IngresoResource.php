@@ -56,12 +56,30 @@ class IngresoResource extends Resource
 
                 Forms\Components\Select::make('producto_codigo')
                     ->label('Producto')
-                    ->options(
-                        Producto::where('estado', true)
+                    ->options(function () {
+                        return \App\Models\Producto::where('estado', true) // o 'activo' según tu columna
+                            ->whereHas('conteos', function ($q) {
+                                $q->where('activo', true);
+                            })
+                            ->with(['conteos' => function ($q) {
+                                $q->where('activo', true);
+                            }])
                             ->orderBy('nombre')
-                            ->pluck('nombre', 'codigo')
-                    )
+                            ->get()
+                            ->mapWithKeys(function ($producto) {
+                                $conteoActivo = $producto->conteos->first();
+                                $cantidad = $conteoActivo ? $conteoActivo->cantidad : 0;
+
+                                return [
+                                    $producto->codigo => "{$producto->nombre} | Cant: {$cantidad}",
+                                ];
+                            })
+                            ->toArray();
+                    })
+                    ->searchable()
+                    ->preload()
                     ->required(),
+
 
                 Forms\Components\TextInput::make('cantidad')
                     ->label('Cantidad ingresada')

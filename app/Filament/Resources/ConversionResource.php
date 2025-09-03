@@ -45,9 +45,8 @@ class ConversionResource extends Resource
                     ->description('Complete los datos para realizar la conversión de productos')
                     ->schema([
 
-                        // Mostrar nombre del usuario (solo lectura)
+                        // Guardar nombre del usuario (oculto, solo lectura en DB)
                         Forms\Components\Hidden::make('user_name')
-                            ->label('Usuario Responsable')
                             ->default(fn($record) => $record->user->name ?? auth()->user()->name)
                             ->disabled()
                             ->columnSpan(2),
@@ -56,15 +55,35 @@ class ConversionResource extends Resource
                         Forms\Components\Hidden::make('user_id')
                             ->default(fn() => auth()->id()),
 
-
                         Forms\Components\Section::make('Producto Origen')
                             ->description('Seleccione el producto que se va a descontar')
                             ->schema([
                                 Forms\Components\Select::make('producto_origen')
                                     ->label('Producto Origen')
-                                    ->options(Producto::all()->pluck('nombre', 'codigo'))
+                                    ->options(function () {
+                                        return \App\Models\Producto::where('estado', true)
+                                            ->where('convertible', true)
+                                            ->whereHas('conteos', fn($q) => $q->where('activo', true))
+                                            ->with(['conteos' => fn($q) => $q->where('activo', true)])
+                                            ->orderBy('nombre')
+                                            ->get()
+                                            ->mapWithKeys(function ($producto) {
+                                                $conteoActivo = $producto->conteos->first();
+                                                $cantidad = $conteoActivo ? $conteoActivo->cantidad : 0;
+
+                                                $textoCantidad = $cantidad > 0 ? "Cant: {$cantidad}" : "AGOTADO";
+
+                                                return [
+                                                    $producto->codigo => "{$producto->nombre} | {$textoCantidad}",
+                                                ];
+                                            })
+                                            ->toArray();
+                                    })
                                     ->searchable()
-                                    ->required(),
+                                    ->preload()
+                                    ->required()
+                                    // ✅ No puede ser igual al destino
+                                    ->rule('different:producto_destino'),
 
                                 Forms\Components\TextInput::make('cantidad_origen')
                                     ->label('Cantidad a Descontar')
@@ -80,9 +99,30 @@ class ConversionResource extends Resource
                             ->schema([
                                 Forms\Components\Select::make('producto_destino')
                                     ->label('Producto Destino')
-                                    ->options(Producto::all()->pluck('nombre', 'codigo'))
+                                    ->options(function () {
+                                        return \App\Models\Producto::where('estado', true)
+                                            ->where('convertible', true)
+                                            ->whereHas('conteos', fn($q) => $q->where('activo', true))
+                                            ->with(['conteos' => fn($q) => $q->where('activo', true)])
+                                            ->orderBy('nombre')
+                                            ->get()
+                                            ->mapWithKeys(function ($producto) {
+                                                $conteoActivo = $producto->conteos->first();
+                                                $cantidad = $conteoActivo ? $conteoActivo->cantidad : 0;
+
+                                                $textoCantidad = $cantidad > 0 ? "Cant: {$cantidad}" : "AGOTADO";
+
+                                                return [
+                                                    $producto->codigo => "{$producto->nombre} | {$textoCantidad}",
+                                                ];
+                                            })
+                                            ->toArray();
+                                    })
                                     ->searchable()
-                                    ->required(),
+                                    ->preload()
+                                    ->required()
+                                    // ✅ No puede ser igual al origen
+                                    ->rule('different:producto_origen'),
 
                                 Forms\Components\TextInput::make('cantidad_destino')
                                     ->label('Cantidad a Generar')
@@ -97,6 +137,7 @@ class ConversionResource extends Resource
                     ->columns(1),
             ]);
     }
+
 
     public static function table(Table $table): Table
     {
