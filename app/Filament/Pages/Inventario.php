@@ -38,7 +38,10 @@ class Inventario extends Page implements Tables\Contracts\HasTable
             ->query(
                 Conteo::query()
                     ->with('producto')
-                    ->orderBy('created_at', 'desc')
+                    ->join('productos', 'conteos.producto_codigo', '=', 'productos.codigo')
+                    ->orderBy('productos.categoria', 'asc')
+                    ->orderBy('productos.nombre', 'asc')
+                    ->select('conteos.*') // importante para que Filament funcione bien
             )
             ->columns([
                 TextColumn::make('producto.codigo')
@@ -126,10 +129,10 @@ class Inventario extends Page implements Tables\Contracts\HasTable
                     ])
                     ->query(function (Builder $query, array $data) {
                         if ($data['desde']) {
-                            $query->whereDate('created_at', '>=', $data['desde']);
+                            $query->whereDate('conteos.created_at', '>=', $data['desde']);
                         }
                         if ($data['hasta']) {
-                            $query->whereDate('created_at', '<=', $data['hasta']);
+                            $query->whereDate('conteos.created_at', '<=', $data['hasta']);
                         }
                     }),
             ])
